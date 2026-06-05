@@ -193,6 +193,10 @@ Connect your Rails MCP server with different AI clients:
 
 👉 **[Claude Desktop](examples/claude/)** - Complete setup guide with bridge script
 
+👉 **MCP registries and control planes** - Register the Rails MCP endpoint with
+an MCP-compatible registry or gateway so tool discovery, access control, audit
+trails, and approvals can be managed centrally while Rails owns the tools.
+
 ## Documentation
 
 👉 **[Advanced Usage](docs/advanced-usage.md)** - Custom authorization, caching, manual configuration  
