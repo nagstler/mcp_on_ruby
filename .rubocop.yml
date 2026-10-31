@@ -33,6 +33,9 @@ Metrics/MethodLength:
 Metrics/AbcSize:
   Max: 25
 
+Metrics/ParameterLists:
+  CountKeywordArgs: false
+
 Metrics/ClassLength:
   Max: 200
 
