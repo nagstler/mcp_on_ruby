@@ -6,6 +6,10 @@ module McpOnRuby
     JSON_TYPE = %r{\Aapplication/(?:[\w.+-]+\+)?json\b}i
     HTML_TYPE = %r{\Atext/html\b}i
 
+    # Sign-in pages apps redirect unauthenticated requests to: Rails 8 authentication (/session/new),
+    # Devise (/users/sign_in), and common /login and /signin routes.
+    SIGN_IN_PATH = %r{/(?:session/new|sign_?in|log_?in)/?\z}i
+
     module_function
 
     def from_rack(status, headers, body)
@@ -15,8 +19,7 @@ module McpOnRuby
 
       case status
       when 200..299 then success(status, text, json, content_type)
-      when 300..399 then error(status, "Redirected to #{header(headers, "location") || "another page"}; " \
-                                       "redirects are not followed")
+      when 300..399 then redirect(status, header(headers, "location"))
       when 400..499 then client_error(status, text, json)
       else error(status, "Internal server error (#{status})")
       end
@@ -34,6 +37,16 @@ module McpOnRuby
       end
 
       text_response(text)
+    end
+
+    def redirect(status, location)
+      if location && URI(location).path.to_s.match?(SIGN_IN_PATH)
+        error(status, "Not authenticated: the app redirected to its sign-in page (#{location})")
+      else
+        error(status, "Redirected to #{location || "another page"}; redirects are not followed")
+      end
+    rescue URI::InvalidURIError
+      error(status, "Redirected to #{location}; redirects are not followed")
     end
 
     def client_error(status, text, json)

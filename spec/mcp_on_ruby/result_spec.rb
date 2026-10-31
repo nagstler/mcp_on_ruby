@@ -43,6 +43,29 @@ RSpec.describe McpOnRuby::Result do
     expect(response.structured_content).to eq("status" => 503)
   end
 
+  it "reports redirects to a sign-in page as unauthenticated" do
+    %w[https://app.test/session/new https://app.test/users/sign_in /login http://app.test/signin/].each do |location|
+      response = described_class.from_rack(302, { "location" => location }, [""])
+
+      expect(response.content.first[:text])
+        .to eq("Not authenticated: the app redirected to its sign-in page (#{location})")
+    end
+  end
+
+  it "keeps other redirects as redirects" do
+    %w[https://app.test/orders/5 https://app.test/sessions_report /blog/how-to-login-faster].each do |location|
+      response = described_class.from_rack(303, { "location" => location }, [""])
+
+      expect(response.content.first[:text]).to eq("Redirected to #{location}; redirects are not followed")
+    end
+  end
+
+  it "tolerates unparseable Location headers" do
+    response = described_class.from_rack(302, { "location" => "http://bad host/" }, [""])
+
+    expect(response.content.first[:text]).to eq("Redirected to http://bad host/; redirects are not followed")
+  end
+
   it "describes redirects without a Location header" do
     response = described_class.from_rack(302, {}, [""])
 
