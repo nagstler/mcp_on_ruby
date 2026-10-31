@@ -69,6 +69,11 @@ RSpec.describe McpOnRuby::Controller do
       expect(controller.mcp_tool_name).to be_nil
     end
 
+    it "exposes the stdio user" do
+      controller.request = ActionDispatch::TestRequest.create(McpOnRuby::USER_ENV_KEY => :alice)
+      expect(controller.mcp_user).to eq(:alice)
+    end
+
     it "is true for requests dispatched by a tool call" do
       controller.request = ActionDispatch::TestRequest.create(McpOnRuby::TOOL_ENV_KEY => "widgets_index")
       expect(controller.mcp_request?).to be(true)

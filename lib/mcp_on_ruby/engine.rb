@@ -22,6 +22,7 @@ module McpOnRuby
 
     # Fail at boot, not on the first agent request, when declarations do not match routes.
     config.after_initialize do |app|
+      McpOnRuby::WardenHook.install!
       McpOnRuby.registry.tools if app.config.eager_load
     end
   end

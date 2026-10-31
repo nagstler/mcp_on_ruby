@@ -15,12 +15,19 @@ module McpOnRuby
   # Rack env key set on requests dispatched by an MCP tool call; holds the tool name.
   TOOL_ENV_KEY = "mcp_on_ruby.tool"
 
+  # Rack env key holding the user a local (stdio) session acts as.
+  USER_ENV_KEY = "mcp_on_ruby.user"
+
+  autoload :CallContext, "mcp_on_ruby/call_context"
   autoload :Configuration, "mcp_on_ruby/configuration"
   autoload :Controller, "mcp_on_ruby/controller"
   autoload :Declaration, "mcp_on_ruby/declaration"
+  autoload :Dispatcher, "mcp_on_ruby/dispatcher"
   autoload :Registry, "mcp_on_ruby/registry"
+  autoload :Result, "mcp_on_ruby/result"
   autoload :Schema, "mcp_on_ruby/schema"
   autoload :ToolSpec, "mcp_on_ruby/tool_spec"
+  autoload :WardenHook, "mcp_on_ruby/warden_hook"
 
   class << self
     def configuration
