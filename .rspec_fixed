@@ -1,4 +1,0 @@
---require spec_helper
---format documentation
---color
---pattern "spec/unit/protocol/fixed/**/*_spec.rb,spec/unit/client/fixed/**/*_spec.rb,spec/unit/server/fixed/**/*_spec.rb,spec/unit/server/fixed/prompts/**/*_spec.rb,spec/unit/server/fixed/roots/**/*_spec.rb,spec/unit/server/fixed/auth/middleware_spec.rb,spec/unit/server/fixed/auth/permissions_spec.rb,spec/unit/server/fixed/auth/oauth_separate_spec.rb,spec/debug_spec.rb"
