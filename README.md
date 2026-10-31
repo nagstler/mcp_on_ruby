@@ -172,7 +172,30 @@ McpOnRuby.configure do |config|
 end
 ```
 
-For Devise and Warden, the user is signed in with the `:user` scope (change it with `config.warden_scope`). Apps with custom authentication can read the stdio user with `mcp_user` in their own `before_action`.
+For Devise and Warden, the user is signed in with the `:user` scope (change it with `config.warden_scope`). Other apps read the stdio user with `mcp_user`.
+
+**Rails 8 authentication** (`bin/rails generate authentication`) uses neither Warden nor tokens. Teach its concern about API tokens for HTTP clients and about `mcp_user` for stdio:
+
+```ruby
+# app/controllers/concerns/authentication.rb
+def resume_session
+  Current.session ||= find_session_by_cookie || find_session_by_token || find_session_for_mcp
+end
+
+# HTTP clients send `Authorization: Bearer <api_token>` (add `has_secure_token :api_token` to User).
+def find_session_by_token
+  authenticate_with_http_token do |token, _options|
+    User.find_by(api_token: token)&.sessions&.new(user_agent: request.user_agent, ip_address: request.remote_ip)
+  end
+end
+
+# `bin/rails mcp:stdio` sessions act as config.stdio_user.
+def find_session_for_mcp
+  mcp_user&.sessions&.new
+end
+```
+
+The sessions are built but never saved, so tool calls don't add rows to `sessions` or set cookies.
 
 If authentication fails, the agent gets a clear "Not authenticated (401)" tool error and nothing runs.
 
@@ -266,19 +289,26 @@ claude mcp add my-app -e MCP_USER=alice@example.com -- bin/rails mcp:stdio
 <details>
 <summary><b>Claude Desktop</b></summary>
 
-Claude Desktop does not load your shell profile, so start Rails through a login shell to pick up rbenv, asdf, or chruby:
+Claude Desktop starts servers without your shell environment, so rbenv, asdf, and mise aren't loaded. Point it at your app's Ruby directly, and use `-C` to run from the app's directory:
+
+```bash
+# In your app directory, print the Ruby to use:
+ruby -e 'puts RbConfig.ruby'
+```
 
 ```json
 {
   "mcpServers": {
     "my-app": {
-      "command": "bash",
-      "args": ["-lc", "cd /path/to/my-app && bin/rails mcp:stdio"],
+      "command": "/Users/you/.rbenv/versions/3.4.7/bin/ruby",
+      "args": ["-C", "/path/to/my-app", "bin/rails", "mcp:stdio"],
       "env": { "MCP_USER": "alice@example.com" }
     }
   }
 }
 ```
+
+Update `command` when you upgrade Ruby.
 </details>
 
 <details>
