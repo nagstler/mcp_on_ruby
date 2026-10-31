@@ -32,12 +32,12 @@ RSpec.describe McpOnRuby::Schema do
       expect(schema[:properties]["status"]).to eq(type: "string", enum: %w[paid pending])
     end
 
-    it "supports union and nullable types" do
+    it "expresses union and nullable types as portable anyOf branches" do
       schema = described_class.build(id: { type: %i[string integer] }, note: { type: :string, nullable: true })
 
       expect(schema[:properties]).to eq(
-        "id" => { type: %w[string integer] },
-        "note" => { type: %w[string null] }
+        "id" => { anyOf: [{ type: "string" }, { type: "integer" }] },
+        "note" => { anyOf: [{ type: "string" }, { type: "null" }] }
       )
     end
 

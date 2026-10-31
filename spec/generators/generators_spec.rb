@@ -68,6 +68,39 @@ RSpec.describe "Generators" do
           mcp_tool :index, description: "List orders"
           mcp_tool :show, description: "Show one order by id"
           mcp_tool :destroy, description: "Delete an order", write: true
+
+          def index; end
+        end
+      RUBY
+    end
+
+    it "scaffolds params for create and update from the model's columns" do
+      column = Struct.new(:type)
+      model = Class.new do
+        define_singleton_method(:primary_key) { "id" }
+        define_singleton_method(:model_name) { Struct.new(:param_key).new("order") }
+        define_singleton_method(:columns_hash) do
+          { "id" => column.new(:integer), "sku" => column.new(:string), "quantity" => column.new(:integer),
+            "total" => column.new(:decimal), "gift" => column.new(:boolean), "ships_on" => column.new(:date),
+            "created_at" => column.new(:datetime), "updated_at" => column.new(:datetime) }
+        end
+      end
+      stub_const("Order", model)
+
+      run_generator(described_class, %w[orders create])
+
+      expect(read("app/controllers/orders_controller.rb")).to eq(<<~RUBY)
+        class OrdersController < ApplicationController
+          mcp_tool :create, description: "Create an order", write: true do
+            param :order, required: true do
+              param :sku, type: :string
+              param :quantity, type: :integer
+              param :total, type: :number
+              param :gift, type: :boolean
+              param :ships_on, type: :string, format: "date"
+            end
+          end
+
           def index; end
         end
       RUBY

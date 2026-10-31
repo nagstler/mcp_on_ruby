@@ -5,6 +5,7 @@ Rails.application.routes.draw do
 
   resources :orders
   resource :profile, only: :show
+  resources :notes, only: :create
 
   get "pages/html", to: "pages#html"
   get "pages/text", to: "pages#text"

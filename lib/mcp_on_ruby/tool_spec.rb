@@ -81,7 +81,7 @@ module McpOnRuby
     private
 
     def path_param_schema(param)
-      { type: %w[string integer], description: "The :#{param} segment of #{path}" }
+      { anyOf: [{ type: "string" }, { type: "integer" }], description: "The :#{param} segment of #{path}" }
     end
   end
 end

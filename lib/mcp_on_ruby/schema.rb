@@ -82,19 +82,26 @@ module McpOnRuby
     private
 
     def property(name, type, nullable:, items:, options:, &)
-      schema = { type: json_type(name, type, nullable) }
+      types = json_types(name, type, nullable)
+      schema = type_schema(types)
       schema.merge!(keywords(name, options))
-      schema.merge!(nested(name, schema[:type], items, &))
+      schema.merge!(nested(name, types, items, &))
       schema
     end
 
-    def json_type(name, type, nullable)
+    def json_types(name, type, nullable)
       types = Array(type).map(&:to_s)
       unknown = types - TYPES
       raise ArgumentError, "parameter #{name.inspect} has unknown type #{unknown.join(", ")}" if unknown.any?
 
       types << "null" if nullable && !types.include?("null")
-      types.one? ? types.first : types
+      types
+    end
+
+    # Several types become `anyOf` branches rather than a `type` array, which some model
+    # providers' schema dialects reject.
+    def type_schema(types)
+      types.one? ? { type: types.first } : { anyOf: types.map { |type| { type: } } }
     end
 
     def keywords(name, options)
@@ -106,8 +113,7 @@ module McpOnRuby
       end
     end
 
-    def nested(name, type, items, &)
-      types = Array(type)
+    def nested(name, types, items, &)
       if types.include?("array")
         array_items(name, items, &)
       elsif block_given?
@@ -127,11 +133,11 @@ module McpOnRuby
       return { items: { type: "object" }.merge(nested_object(&)) } if block_given?
       return {} unless items
 
-      { items: items.is_a?(Hash) ? item_schema(name, **items) : { type: json_type(name, items, false) } }
+      { items: items.is_a?(Hash) ? item_schema(name, **items) : type_schema(json_types(name, items, false)) }
     end
 
     def item_schema(name, type:, nullable: false, **options)
-      { type: json_type(name, type, nullable) }.merge(keywords(name, options))
+      type_schema(json_types(name, type, nullable)).merge(keywords(name, options))
     end
 
     def nested_object(&)

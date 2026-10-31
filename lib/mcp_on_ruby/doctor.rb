@@ -16,8 +16,7 @@ module McpOnRuby
 
     def run
       check_mount
-      specs = check_registry
-      check_csrf(specs) if specs
+      check_registry
       check_stdio_identity
       self
     end
@@ -53,23 +52,8 @@ module McpOnRuby
         writes = specs.count(&:write?)
         pass("#{specs.size} tools exposed (#{specs.size - writes} read-only, #{writes} write)")
       end
-      specs
     rescue ConfigurationError => e
       fail(e.message)
-      nil
-    end
-
-    def check_csrf(specs)
-      controllers = specs.select(&:write?).map(&:controller).uniq.select { |controller| csrf_protected?(controller) }
-      return if controllers.empty?
-
-      warn("Write tools on #{controllers.map(&:name).join(", ")} run with CSRF protection. Token-authenticated " \
-           "requests are unaffected; for cookie sessions add `skip_forgery_protection if: :mcp_request?`")
-    end
-
-    def csrf_protected?(controller)
-      controller < ActionController::Base && controller.allow_forgery_protection &&
-        controller._process_action_callbacks.any? { |callback| callback.filter == :verify_authenticity_token }
     end
 
     def check_stdio_identity

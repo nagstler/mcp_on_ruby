@@ -7,6 +7,17 @@ module McpOnRuby
     # rails generate mcp_on_ruby:expose orders index show
     class ExposeGenerator < Rails::Generators::Base
       WRITE_ACTIONS = %w[create update destroy].freeze
+      PARAM_ACTIONS = %w[create update].freeze
+      SKIPPED_COLUMNS = %w[created_at updated_at].freeze
+
+      COLUMN_TYPES = {
+        integer: "type: :integer", bigint: "type: :integer",
+        decimal: "type: :number", float: "type: :number",
+        boolean: "type: :boolean",
+        date: 'type: :string, format: "date"',
+        datetime: 'type: :string, format: "date-time"', timestamp: 'type: :string, format: "date-time"',
+        json: "type: :object", jsonb: "type: :object"
+      }.freeze
 
       desc "Adds mcp_tool declarations for existing controller actions."
 
@@ -21,12 +32,17 @@ module McpOnRuby
         pending = actions.reject { |action| declared?(action) }
         return say_status(:identical, controller_file, :blue) if pending.empty?
 
-        indent = "#{class_indent}  "
-        inject_into_file controller_file, pending.map { |action| "#{indent}#{declaration(action)}\n" }.join,
-                         after: class_line_pattern
+        inject_into_file controller_file, declarations(pending), after: class_line_pattern
       end
 
       private
+
+      def declarations(pending)
+        indent = "#{class_line[:indent]}  "
+        text = pending.map { |action| declaration(action).gsub(/^/, indent) }.join
+        following_line = source[class_line.end(0)..].lines.first.to_s.strip
+        following_line.empty? || following_line == "end" ? text : "#{text}\n"
+      end
 
       def controller_file
         "app/controllers/#{controller.underscore.delete_suffix("_controller")}_controller.rb"
@@ -41,11 +57,9 @@ module McpOnRuby
         /^(?<indent>[ \t]*)class (?:\w+::)*#{controller_class.demodulize}\b.*\n/
       end
 
-      def class_indent
-        class_line = class_line_pattern.match(source)
-        raise Thor::Error, "#{controller_class} not found in #{controller_file}" unless class_line
-
-        class_line[:indent]
+      def class_line
+        @class_line ||= class_line_pattern.match(source) ||
+                        raise(Thor::Error, "#{controller_class} not found in #{controller_file}")
       end
 
       def source
@@ -58,7 +72,9 @@ module McpOnRuby
 
       def declaration(action)
         line = %(mcp_tool :#{action}, description: "#{description(action)}")
-        WRITE_ACTIONS.include?(action) ? "#{line}, write: true" : line
+        line += ", write: true" if WRITE_ACTIONS.include?(action)
+        params = PARAM_ACTIONS.include?(action) ? model_params : nil
+        params ? "#{line} do\n#{params}end\n" : "#{line}\n"
       end
 
       def description(action)
@@ -72,6 +88,20 @@ module McpOnRuby
           "update" => "Update #{article} #{record}",
           "destroy" => "Delete #{article} #{record}"
         }.fetch(action) { "TODO: describe what #{action} does for the agent" }
+      end
+
+      # A params block built from the model's columns, when the controller has an ActiveRecord model.
+      def model_params
+        model = controller.split("/").last.classify.safe_constantize
+        return unless model.respond_to?(:columns_hash)
+
+        columns = model.columns_hash.except(model.primary_key, *SKIPPED_COLUMNS)
+        return if columns.empty?
+
+        lines = columns.map do |name, column|
+          "    param :#{name}, #{COLUMN_TYPES.fetch(column.type, "type: :string")}\n"
+        end
+        "  param :#{model.model_name.param_key}, required: true do\n#{lines.join}  end\n"
       end
     end
   end
