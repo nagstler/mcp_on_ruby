@@ -1,0 +1,20 @@
+name: Feature request
+description: Suggest an improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the situation in your app and what an agent should be able to do.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+      description: An example `mcp_tool` declaration or configuration is a great way to show it.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you've considered
