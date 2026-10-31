@@ -38,6 +38,13 @@ RSpec.describe McpOnRuby::TestHelper do
     expect(result.protocol_error).to eq("Tool not found: orders_ship")
   end
 
+  it "reports schema violations as protocol errors" do
+    result = mcp_call(:orders_index, { status: "lost" }, headers: alice_token)
+
+    expect(result).to be_error
+    expect(result.text).to include("Invalid arguments")
+  end
+
   it "lists visible tools" do
     McpOnRuby.configure { |config| config.allow_writes = false }
 

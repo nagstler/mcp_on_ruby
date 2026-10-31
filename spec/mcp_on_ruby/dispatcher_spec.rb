@@ -34,6 +34,39 @@ RSpec.describe McpOnRuby::Dispatcher do
     end
   end
 
+  describe "what reaches the controller" do
+    def echo(arguments = {}, context = alice)
+      call("pages_echo", arguments, context).structured_content
+    end
+
+    it "encodes nested and array arguments as Rails query params" do
+      expect(echo({ q: "mug", tags: %w[a b], filter: { min: 2 } })["query"])
+        .to eq("q" => "mug", "tags" => %w[a b], "filter" => { "min" => "2" })
+    end
+
+    it "forwards cookies and the HTTPS scheme from the MCP request" do
+      context = McpOnRuby::CallContext.http(
+        "HTTP_HOST" => "www.example.com", "HTTP_COOKIE" => "session_hint=abc", "rack.url_scheme" => "https"
+      )
+
+      expect(echo({}, context)).to include("cookie" => "abc", "ssl" => true)
+    end
+
+    it "tells the controller which tool is calling" do
+      expect(echo["tool"]).to eq("pages_echo")
+    end
+
+    it "escapes path params so they cannot change the route" do
+      response = call("orders_show", { id: "1/../3" })
+
+      expect(text(response)).to start_with("Not found (404)")
+    end
+
+    it "dispatches to namespaced controllers" do
+      expect(call("admin_reports_index").structured_content).to eq([{ "name" => "daily" }])
+    end
+  end
+
   describe "write tools" do
     it "sends arguments as a JSON body" do
       response = call("orders_create", { order: { sku: "MUG-9", quantity: 2 } })

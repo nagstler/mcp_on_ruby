@@ -7,6 +7,13 @@ class PagesController < ApplicationController
   mcp_tool :moved, description: "Redirect elsewhere"
   mcp_tool :crash, description: "Raise an error"
   mcp_tool :noisy, description: "Print to stdout while rendering JSON"
+  mcp_tool :echo, description: "Echo what reached the controller" do
+    param :q, type: :string
+    param :tags, type: :array, items: :string
+    param :filter, type: :object do
+      param :min, type: :integer
+    end
+  end
 
   def html
     render html: helpers.tag.h1("Hello")
@@ -22,6 +29,15 @@ class PagesController < ApplicationController
 
   def crash
     raise "boom"
+  end
+
+  def echo
+    render json: {
+      query: request.query_parameters,
+      cookie: request.cookies["session_hint"],
+      ssl: request.ssl?,
+      tool: mcp_tool_name
+    }
   end
 
   # Output like this must never corrupt the stdio protocol stream.
