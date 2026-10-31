@@ -1,13 +1,17 @@
 /.bundle/
-/.yardoc
+/.yardoc/
 /_yardoc/
 /coverage/
 /doc/
 /pkg/
-/spec/reports/
 /tmp/
-.env
+/spec/reports/
+/spec/dummy/log/
+/spec/dummy/tmp/
 *.gem
 .rspec_status
 .DS_Store
-Gemfile.lockfastmcp/
+.env
+
+# Gems are tested against several Rails versions; the lockfile is not committed.
+/Gemfile.lock

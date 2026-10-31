@@ -1,11 +1,10 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+# Boots the dummy Rails app with mcp_on_ruby loaded, for experimenting.
 require "bundler/setup"
-require "mcp_on_ruby"
-
-# You can add fixtures and/or initialization code here to make experimenting
-# with your gem easier. You can also use a different console, if you like.
+ENV["RAILS_ENV"] ||= "development"
+require_relative "../spec/dummy/config/environment"
 
 require "irb"
 IRB.start(__FILE__)
