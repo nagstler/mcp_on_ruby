@@ -34,9 +34,6 @@ module McpOnRuby
     # Additional MCP::Tool classes served alongside controller tools.
     attr_accessor :tools
 
-    # Host names the HTTP endpoint accepts, in addition to the app's `config.hosts`.
-    attr_accessor :allowed_hosts
-
     # Browser origins allowed to call the HTTP endpoint.
     attr_accessor :allowed_origins
 
@@ -55,7 +52,6 @@ module McpOnRuby
       @warden_scope = :user
       @allow_writes = true
       @tools = []
-      @allowed_hosts = []
       @allowed_origins = []
       @max_request_bytes = 4 * 1024 * 1024
       @tool_name = DEFAULT_TOOL_NAME

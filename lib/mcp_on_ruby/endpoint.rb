@@ -34,7 +34,7 @@ module McpOnRuby
         stateless: true,
         enable_json_response: true,
         serve_subscriptions_listen: false,
-        allowed_hosts: [request.host, request.host_with_port, *configuration.allowed_hosts].uniq,
+        allowed_hosts: [request.host, request.host_with_port].uniq,
         allowed_origins: configuration.allowed_origins,
         max_request_bytes: configuration.max_request_bytes
       )
