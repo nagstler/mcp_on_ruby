@@ -41,5 +41,11 @@ module McpOnRuby
     def mcp_tool_name
       request.env[McpOnRuby::TOOL_ENV_KEY]
     end
+
+    # The user a local `bin/rails mcp:stdio` session acts as, from `config.stdio_user`.
+    # Apps without Warden can use this in their own authentication filter.
+    def mcp_user
+      request.env[McpOnRuby::USER_ENV_KEY]
+    end
   end
 end
