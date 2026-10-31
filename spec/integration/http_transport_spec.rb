@@ -104,4 +104,50 @@ RSpec.describe "MCP over Streamable HTTP" do
 
     expect(mcp_post({ jsonrpc: "2.0", id: 1, method: "tools/list", params: { pad: "x" * 100 } }).status).to eq(413)
   end
+
+  describe "protocol edges" do
+    it "accepts notifications without a response body" do
+      expect(mcp_post({ jsonrpc: "2.0", method: "notifications/initialized" }).status).to eq(202)
+    end
+
+    it "rejects non-JSON content types" do
+      response = mcp_post({ jsonrpc: "2.0", id: 1, method: "tools/list" }, headers: { "CONTENT_TYPE" => "text/plain" })
+
+      expect(response.status).to eq(415)
+    end
+
+    it "answers malformed JSON with a parse error" do
+      response = Rack::MockRequest.new(Rails.application).post(
+        "/mcp", "CONTENT_TYPE" => "application/json", "HTTP_ACCEPT" => "application/json, text/event-stream",
+                "HTTP_HOST" => "www.example.com", input: "{not json"
+      )
+
+      expect(response.status).to eq(400)
+      expect(JSON.parse(response.body).dig("error", "code")).to eq(-32_700)
+    end
+
+    it "has no server-sent event stream to open" do
+      response = Rack::MockRequest.new(Rails.application).get(
+        "/mcp", "HTTP_HOST" => "www.example.com", "HTTP_ACCEPT" => "text/event-stream"
+      )
+
+      expect(response.status).to eq(405)
+    end
+
+    it "lets Rails host authorization reject unknown hosts" do
+      expect(mcp_post({ jsonrpc: "2.0", id: 1, method: "tools/list" },
+                      headers: { "HTTP_HOST" => "evil.example" }).status)
+        .to eq(403)
+    end
+  end
+
+  it "lists tools under a custom naming scheme" do
+    McpOnRuby.configure { |config| config.tool_name = ->(path, action) { "#{action}_#{path.tr("/", "_")}" } }
+    McpOnRuby.registry.reset!
+
+    names = mcp_request("tools/list").dig("result", "tools").pluck("name")
+
+    expect(names).to include("index_orders", "index_admin_reports")
+    expect(mcp_call_tool("show_orders", { id: 1 }).dig("result", "structuredContent", "sku")).to eq("BOOK-1")
+  end
 end
