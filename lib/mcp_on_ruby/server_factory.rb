@@ -45,12 +45,16 @@ module McpOnRuby
       @dispatcher ||= Dispatcher.new
     end
 
-    # Tool classes are rebuilt only when the registry is (on boot and code reload).
+    # Tool classes are rebuilt only when the registry is (on boot and code reload) or when
+    # `allow_writes` changes, never per request.
     def mcp_tools
-      specs = served_specs
+      key = [registry.tools, configuration.allow_writes]
       @mutex.synchronize do
-        @cache = [specs, specs.map { |spec| spec.to_mcp_tool(handler) }] unless @cache&.first.equal?(specs)
-        @cache.last
+        unless @cache && @cache[:registry].equal?(key.first) && @cache[:allow_writes] == key.last
+          @cache = { registry: key.first, allow_writes: key.last,
+                     tools: served_specs.map { |spec| spec.to_mcp_tool(handler) } }
+        end
+        @cache[:tools]
       end
     end
 
