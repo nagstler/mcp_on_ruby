@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.0.0] - Unreleased
+## [2.0.0] - 2026-10-31
 
 MCP on Ruby is now a Rails engine that exposes existing controller actions as MCP tools,
 built on the official [`mcp`](https://github.com/modelcontextprotocol/ruby-sdk) gem.
@@ -99,3 +99,7 @@ built on the official [`mcp`](https://github.com/modelcontextprotocol/ruby-sdk) 
 - Resource management
 - Prompt handling
 - Root filesystem access
+
+[Unreleased]: https://github.com/nagstler/mcp_on_ruby/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/nagstler/mcp_on_ruby/compare/v1.0.0...v2.0.0
+[1.0.0]: https://github.com/nagstler/mcp_on_ruby/releases/tag/v1.0.0
