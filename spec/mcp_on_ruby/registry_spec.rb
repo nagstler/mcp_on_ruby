@@ -135,6 +135,16 @@ RSpec.describe McpOnRuby::Registry do
     expect(registry.tools).to eq([])
   end
 
+  it "builds once when many threads ask at the same time" do
+    results = Array.new(8) { Thread.new { registry.tools } }.map(&:value)
+
+    expect(results.uniq(&:object_id).size).to eq(1)
+  end
+
+  it "describes a tool for humans" do
+    expect(tool("widgets_show").to_s).to eq("widgets_show (RegistryFixtures::WidgetsController#show, GET /widgets/:id)")
+  end
+
   it "caches tools until reset" do
     first = registry.tools
     expect(registry.tools).to be(first)

@@ -43,6 +43,12 @@ RSpec.describe McpOnRuby::Result do
     expect(response.structured_content).to eq("status" => 503)
   end
 
+  it "describes redirects without a Location header" do
+    response = described_class.from_rack(302, {}, [""])
+
+    expect(response.content.first[:text]).to eq("Redirected to another page; redirects are not followed")
+  end
+
   it "closes the body" do
     closed = false
     body = Rack::BodyProxy.new(["{}"]) { closed = true }

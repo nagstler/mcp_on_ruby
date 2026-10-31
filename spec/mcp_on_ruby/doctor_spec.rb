@@ -12,8 +12,14 @@ RSpec.describe McpOnRuby::Doctor do
     result = doctor
 
     expect(result).to be_ok
-    expect(result.report).to include("OK    Engine mounted at /mcp", "12 tools exposed (8 read-only, 4 write)",
+    expect(result.report).to include("OK    Engine mounted at /mcp", "14 tools exposed (10 read-only, 4 write)",
                                      "stdio sessions have an identity (stdio_user)")
+  end
+
+  it "accepts stdio headers as the stdio identity" do
+    configuration.stdio_headers = -> { {} }
+
+    expect(doctor.report).to include("OK    stdio sessions have an identity (stdio_headers)")
   end
 
   it "warns when stdio has no identity" do
