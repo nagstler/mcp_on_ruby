@@ -4,6 +4,9 @@ if ENV["COVERAGE"] != "false"
   require "simplecov"
   SimpleCov.start do
     add_filter "/spec/"
+    # HTML for local runs, JSON for the coverage upload in CI.
+    formatter SimpleCov::Formatter::MultiFormatter.new([SimpleCov::Formatter::HTMLFormatter,
+                                                        SimpleCov::Formatter::JSONFormatter])
     enable_coverage :branch
   end
 end
