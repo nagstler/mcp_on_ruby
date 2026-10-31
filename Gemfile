@@ -10,7 +10,7 @@ gem "rails", "~> #{rails_version}.0"
 
 gem "rake", "~> 13.2"
 gem "rspec", "~> 3.13"
-gem "simplecov", "~> 0.22", require: false
+gem "simplecov", "~> 1.2", require: false
 gem "warden", "~> 1.2"
 
 group :lint do
