@@ -107,21 +107,12 @@ Then ask: *"Which of my products cost more than $50?"*
 
 ## How it works
 
-```
- MCP client (Claude, Cursor, …)
-        │  Streamable HTTP (/mcp)   or   stdio (bin/rails mcp:stdio)
-        ▼
- official mcp gem ──────── protocol, version negotiation, schema validation
-        │  tools/call  orders_index  { "status": "pending" }
-        ▼
- MCP on Ruby
-   Registry    which controller actions are exposed, with their routes and schemas
-   Dispatcher  builds an in-process request:  GET /orders?status=pending
-   Identity    the caller's Authorization header and cookies, or the stdio user
-   Result      2xx JSON → structured result; 4xx/5xx → readable tool error
-        ▼
- Your Rails app: middleware → routes → before_action → controller → render json
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/how-it-works-dark.svg">
+    <img src="docs/assets/how-it-works.svg" width="960" alt="An MCP client calls a tool over HTTP or stdio. The official mcp gem handles the protocol and passes tools/call to MCP on Ruby, where the Dispatcher uses the Registry (mcp_tool to route) and Identity (token or stdio user) to run an in-process request such as GET /orders through your Rails stack and controller as the caller. The controller's response is mapped by Result into the tool result returned to the client.">
+  </picture>
+</p>
 
 Each tool call becomes an ordinary request through your full middleware stack. Anything that protects your API, including `rate_limit`, Rack::Attack, tenant scoping, and audit logging, protects agent traffic too.
 
