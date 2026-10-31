@@ -1,245 +1,436 @@
-# MCP on Ruby
-
 <div align="center">
 
-[![Gem Version](https://badge.fury.io/rb/mcp_on_ruby.svg)](https://badge.fury.io/rb/mcp_on_ruby)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Ruby Version](https://img.shields.io/badge/Ruby-2.7%2B-red.svg)](https://www.ruby-lang.org/)
+# MCP on Ruby
 
-**Model Context Protocol (MCP) server for Rails applications**
+**Make your Rails app usable by AI agents.**
 
-Expose your Rails app as an AI accessible interface — define tools and resources the Rails way.
+Your existing controllers become [Model Context Protocol](https://modelcontextprotocol.io) tools, running through<br>
+the same authentication, policies, params, and JSON you already ship.
 
-![MCP](https://github.com/user-attachments/assets/12c3c244-0026-47b0-861e-e40d731ac4e6)
+[![Gem Version](https://img.shields.io/gem/v/mcp_on_ruby)](https://rubygems.org/gems/mcp_on_ruby)
+[![CI](https://github.com/nagstler/mcp_on_ruby/actions/workflows/ci.yml/badge.svg)](https://github.com/nagstler/mcp_on_ruby/actions/workflows/ci.yml)
+[![Ruby](https://img.shields.io/badge/ruby-3.2%2B-CC342D)](#compatibility)
+[![Rails](https://img.shields.io/badge/rails-7.1%20%E2%80%93%208.1-D30001)](#compatibility)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE.txt)
 
+[Quick start](#quick-start) ·
+[How it works](#how-it-works) ·
+[Guides](#guides) ·
+[Configuration](#configuration) ·
+[Testing](#testing)
 
 </div>
 
 ---
 
-## Features
+```ruby
+class OrdersController < ApplicationController
+  before_action :authenticate_user!
 
-🚀 **Production-Ready** - Authentication, rate limiting, error handling, security  
-🔧 **Rails Integration** - Generators, autoloading, middleware, Railtie  
-🛠️ **Tools System** - Callable functions with JSON Schema validation  
-📊 **Resources System** - Data exposure with URI templating  
-🔒 **Security** - DNS rebinding protection, CORS, token authentication  
-⚡ **Real-time** - Server Events (SSE) foundation (full implementation coming soon)  
-🎯 **Developer-Friendly** - Clean DSL, generators, testing support  
+  mcp_tool :index, description: "Search the current user's orders",
+                   params: { status: { type: :string, enum: %w[pending paid shipped] } }
+  mcp_tool :show,  description: "Fetch one order by id"
 
-## Installation
+  def index
+    render json: current_user.orders.where(params.permit(:status))
+  end
 
-Add to your `Gemfile`:
+  def show
+    render json: current_user.orders.find(params[:id])
+  end
+end
+```
+
+That's the whole integration. Claude, Cursor, or any MCP client can now search and read orders **as the signed-in user**. Your `before_action` authenticates the agent, your scopes and policies decide what it can see, and your existing JSON comes back to it. You don't write new tool classes or a second permission system.
+
+## Why MCP on Ruby
+
+Most MCP libraries ask you to build a parallel API for agents: new tool classes, new argument parsing, new authorization checks. Over time that second API drifts from the real one, and every rule has to be secured twice.
+
+MCP on Ruby takes the opposite approach. **Your app already has an API: your controllers.** MCP on Ruby makes it callable by agents.
+
+- **One source of truth.** Agents go through the same routes, filters, policies, validations, and serializers as your users.
+- **Real identity.** Every tool call runs as a real user, using the auth you already have: API tokens, Devise, or Warden.
+- **Safe by default.** Actions that change data must be marked `write: true`, and every tool tells the client whether it is read-only or destructive.
+- **Local and remote.** Serve Streamable HTTP in production, and stdio for Claude Code, Claude Desktop, and Cursor on your machine.
+- **Built on the official SDK.** The protocol layer is the official [`mcp`](https://github.com/modelcontextprotocol/ruby-sdk) gem, so protocol updates arrive without a rewrite.
+- **Works with the Rails you run today.** Rails 7.1 through 8.1 on Ruby 3.2+.
+
+## Quick start
+
+**1. Install**
+
+```bash
+bundle add mcp_on_ruby
+bin/rails generate mcp_on_ruby:install
+```
+
+The generator creates `config/initializers/mcp_on_ruby.rb` and mounts the endpoint:
 
 ```ruby
-gem 'mcp_on_ruby'
+# config/routes.rb
+mount McpOnRuby::Engine, at: "/mcp"
 ```
 
-Then run:
+**2. Expose some actions**
 
 ```bash
-bundle install
-rails generate mcp_on_ruby:install
+bin/rails generate mcp_on_ruby:expose products index show create
 ```
 
-## Quick Start
+This adds `mcp_tool` declarations to `ProductsController`, with a params schema for `create` built from the model's columns. Edit the descriptions: they are what the agent reads. Then check what agents will see:
 
-### 1. Install and Configure
+```console
+$ bin/rails mcp:tools
+TOOL             ACTION                     VERB  PATH           ACCESS
+products_create  ProductsController#create  POST  /products      write
+products_index   ProductsController#index   GET   /products      read-only
+products_show    ProductsController#show    GET   /products/:id  read-only
+```
+
+**3. Connect an agent**
+
+Over HTTP, sending a token your app already accepts:
 
 ```bash
-# Generate MCP server files
-rails generate mcp_on_ruby:install
-
-# Create a tool
-rails generate mcp_on_ruby:tool UserManager --description "Manage application users"
-
-# Create a resource  
-rails generate mcp_on_ruby:resource UserStats --uri "users/{id}/stats" --template
+claude mcp add --transport http my-app http://localhost:3000/mcp \
+  --header "Authorization: Bearer $MY_APP_API_TOKEN"
 ```
 
-### 2. Configure MCP Server
+Or locally over stdio, acting as a user you choose ([set up `stdio_user`](#authentication) first):
+
+```bash
+claude mcp add my-app -e MCP_USER=alice@example.com -- bin/rails mcp:stdio
+```
+
+Then ask: *"Which of my products cost more than $50?"*
+
+## How it works
+
+```
+ MCP client (Claude, Cursor, …)
+        │  Streamable HTTP (/mcp)   or   stdio (bin/rails mcp:stdio)
+        ▼
+ official mcp gem ──────── protocol, version negotiation, schema validation
+        │  tools/call  orders_index  { "status": "pending" }
+        ▼
+ MCP on Ruby
+   Registry    which controller actions are exposed, with their routes and schemas
+   Dispatcher  builds an in-process request:  GET /orders?status=pending
+   Identity    the caller's Authorization header and cookies, or the stdio user
+   Result      2xx JSON → structured result; 4xx/5xx → readable tool error
+        ▼
+ Your Rails app: middleware → routes → before_action → controller → render json
+```
+
+Each tool call becomes an ordinary request through your full middleware stack. Anything that protects your API, including `rate_limit`, Rack::Attack, tenant scoping, and audit logging, protects agent traffic too.
+
+HTTP is served statelessly: every request is self-contained, so any Puma worker or server behind your load balancer can handle any MCP request, with no sticky sessions.
+
+## Guides
+
+### Declaring tools
+
+```ruby
+mcp_tool :index,
+  description: "Search products by name",  # required: what the agent reads
+  title: "Search products",                # optional display name
+  name: "search_products",                 # optional; defaults to "products_index"
+  params: {
+    q:     :string,                                                  # shorthand
+    sort:  { type: :string, enum: %w[name price], default: "name" },
+    limit: { type: :integer, minimum: 1, maximum: 100 }
+  }
+```
+
+Path parameters such as `:id` in `/products/:id` are read from your routes and added to the schema as required parameters. You don't declare them.
+
+Use a block for nested input:
+
+```ruby
+mcp_tool :create, description: "Place an order", write: true do
+  param :order, required: true do
+    param :sku,      type: :string,  required: true
+    param :quantity, type: :integer, minimum: 1
+    param :tags,     type: :array,   items: :string
+    param :note,     type: :string,  nullable: true
+  end
+end
+```
+
+Supported types: `:string`, `:integer`, `:number`, `:boolean`, `:array`, `:object`, `:null`, or an array of them. Options use Ruby names for JSON Schema keywords: `description`, `enum`, `default`, `format`, `pattern`, `minimum`, `maximum`, `min_length`, `max_length`, `min_items`, `max_items`, `unique_items`, and more. Unknown types and options raise immediately, so typos don't ship.
+
+The official SDK validates arguments against this schema before your controller runs. Arguments reach `params` exactly as they would from a JSON client, so strong params work unchanged. Read tools receive them as query parameters, write tools as a JSON body.
+
+### Authentication
+
+MCP on Ruby never asks you to build a new auth system. It hands the caller's identity to the auth you already have.
+
+**Over HTTP**, the client's `Authorization` header and cookies are forwarded to your controller. If your app accepts API tokens, as most API apps and Devise token setups do, there is nothing to configure.
+
+**Over stdio** there is no HTTP request, so you choose who local sessions act as:
 
 ```ruby
 # config/initializers/mcp_on_ruby.rb
 McpOnRuby.configure do |config|
-  config.authentication_required = true
-  config.authentication_token = ENV['MCP_AUTH_TOKEN']
-  config.rate_limit_per_minute = 60
-  config.allowed_origins = [/\.yourdomain\.com$/]
-end
+  # Devise / Warden apps: sign in as a user for each tool call (nothing is stored in the session).
+  config.stdio_user = -> { User.find_by!(email: ENV.fetch("MCP_USER")) }
 
-Rails.application.configure do
-  config.mcp.enabled = true
-  config.mcp.auto_register_tools = true
-  config.mcp.auto_register_resources = true
+  # Token-authenticated apps: send headers your app already accepts.
+  config.stdio_headers = -> { { "Authorization" => "Bearer #{ENV.fetch("MCP_TOKEN")}" } }
 end
 ```
 
-### 3. Create Tools
+For Devise and Warden, the user is signed in with the `:user` scope (change it with `config.warden_scope`). Apps with custom authentication can read the stdio user with `mcp_user` in their own `before_action`.
+
+If authentication fails, the agent gets a clear "Not authenticated (401)" tool error and nothing runs.
+
+### Authorization
+
+There is nothing new to learn, because tool calls run your controller code. `authorize`, `policy_scope`, `can?`, `current_user.orders.find`, and `head :forbidden` behave exactly as they do for any other client. A 403 reaches the agent as "Not permitted (403)".
+
+Inside a controller, `mcp_request?` tells you whether an agent is calling, and `mcp_tool_name` tells you which tool:
 
 ```ruby
-# app/tools/user_manager_tool.rb
-class UserManagerTool < ApplicationTool
-  def initialize
-    super(
-      name: 'user_manager',
-      description: 'Manage application users',
-      input_schema: {
-        type: 'object',
-        properties: {
-          action: { type: 'string', enum: ['create', 'update', 'delete'] },
-          user_id: { type: 'integer' },
-          attributes: { type: 'object' }
-        },
-        required: ['action']
-      }
-    )
-  end
-
-  protected
-
-  def execute(arguments, context)
-    case arguments['action']
-    when 'create'
-      user = User.create!(arguments['attributes'])
-      { success: true, user: user.as_json }
-    when 'update'
-      user = User.find(arguments['user_id'])
-      user.update!(arguments['attributes'])
-      { success: true, user: user.as_json }
-    else
-      { error: 'Unsupported action' }
-    end
-  end
-
-  def authorize(context)
-    # Add your authorization logic
-    context[:authenticated] == true
-  end
-end
+before_action :require_admin, if: :mcp_request?
 ```
 
-### 4. Create Resources
+### Safety
+
+Agents act on behalf of real users, so the defaults are conservative:
+
+- **Writes are explicit.** Declaring `mcp_tool` on an action routed with `POST`, `PUT`, `PATCH`, or `DELETE` without `write: true` raises `McpOnRuby::ConfigurationError`. This happens at boot in production and when running `bin/rails mcp:doctor`.
+- **Honest hints.** Every tool is annotated from its HTTP verb (`readOnlyHint`, `destructiveHint`, `idempotentHint`), so clients like Claude can ask before destructive calls. Override with `annotations:`.
+- **A kill switch.** `config.allow_writes = false` hides and refuses every write tool, for example on a read-only replica or a demo environment.
+- **No accidental exposure.** Only declared actions are reachable, and declarations without a route raise. `bin/rails mcp:tools` shows exactly what is exposed.
+- **No leaked internals.** Server errors reach the agent as a generic error. Details go to `Rails.error` and your logs.
+- **Browser protection.** The endpoint rejects requests from foreign browser origins. Requests dispatched by MCP skip Rails' CSRF token check, which is safe because only the dispatcher can mark a request as MCP. Regular requests to the same actions stay protected.
+
+See [SECURITY.md](SECURITY.md) for the full threat model.
+
+### Results and errors
+
+| Your controller returns | The agent receives |
+|---|---|
+| `2xx` with JSON | `structuredContent` plus the JSON as text |
+| `2xx` with plain text | The text |
+| `204 No Content` | A short success message |
+| `401` / `403` / `404` | Tool error: not authenticated / not permitted / not found |
+| `422` with JSON | Tool error including your validation messages, so the agent can correct itself |
+| Other `4xx` | Tool error with the status, plus the body when it is JSON |
+| `3xx` | Tool error naming the redirect target (redirects are not followed) |
+| HTML | Tool error asking for JSON. Use `respond_to` with `format.json`. |
+| `5xx` or an exception | Generic tool error. Details are reported to `Rails.error`, never sent. |
+
+### Tools without a controller
+
+For logic that has no endpoint, add a tool class from the official SDK. It runs alongside your controller tools:
 
 ```ruby
-# app/resources/user_stats_resource.rb
-class UserStatsResource < ApplicationResource
-  def initialize
-    super(
-      uri: 'users/{id}/stats',
-      name: 'User Statistics',
-      description: 'Get detailed user statistics',
-      mime_type: 'application/json'
-    )
-  end
+class ReindexSearchTool < MCP::Tool
+  description "Rebuild the search index"
 
-  protected
-
-  def fetch_content(params, context)
-    user = User.find(params['id'])
-    
-    {
-      user_id: user.id,
-      statistics: {
-        posts_count: user.posts.count,
-        comments_count: user.comments.count,
-        last_login: user.last_login_at,
-        account_created: user.created_at
-      },
-      generated_at: Time.current.iso8601
-    }
+  def self.call(server_context:)
+    SearchIndex.rebuild!
+    MCP::Tool::Response.new([{ type: "text", text: "Reindexed" }])
   end
+end
 
-  def authorize(context)
-    # Check if user can access this data
-    context[:authenticated] == true
-  end
+McpOnRuby.configure { |config| config.tools = [ReindexSearchTool] }
+```
+
+These tools bypass your controllers, so they also bypass your controller authentication. Use them for things that are safe for every caller.
+
+### Observability
+
+Every tool call emits `tool_call.mcp_on_ruby` through `ActiveSupport::Notifications`:
+
+```ruby
+ActiveSupport::Notifications.subscribe("tool_call.mcp_on_ruby") do |event|
+  Rails.logger.info(
+    "MCP #{event.payload[:tool]} → #{event.payload[:status]} " \
+    "(#{event.payload[:transport]}, #{event.duration.round}ms)"
+  )
 end
 ```
 
-### 5. Start Your Server
+Payload: `tool`, `controller`, `action`, `transport` (`:http` or `:stdio`), `status`, and `error`. Tool calls also show up in your normal request logs and APM traces as requests to the underlying routes.
+
+### Connecting clients
+
+<details>
+<summary><b>Claude Code</b></summary>
 
 ```bash
-rails server
-# MCP server available at http://localhost:3000/mcp
+# Remote or production
+claude mcp add --transport http my-app https://my-app.example.com/mcp \
+  --header "Authorization: Bearer $MY_APP_API_TOKEN"
+
+# Local, over stdio (run from your app's directory)
+claude mcp add my-app -e MCP_USER=alice@example.com -- bin/rails mcp:stdio
+```
+</details>
+
+<details>
+<summary><b>Claude Desktop</b></summary>
+
+Claude Desktop does not load your shell profile, so start Rails through a login shell to pick up rbenv, asdf, or chruby:
+
+```json
+{
+  "mcpServers": {
+    "my-app": {
+      "command": "bash",
+      "args": ["-lc", "cd /path/to/my-app && bin/rails mcp:stdio"],
+      "env": { "MCP_USER": "alice@example.com" }
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>Cursor</b></summary>
+
+`.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "my-app": {
+      "url": "http://localhost:3000/mcp",
+      "headers": { "Authorization": "Bearer YOUR_API_TOKEN" }
+    }
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>MCP Inspector</b></summary>
+
+```bash
+# Browse and call tools in the browser
+npx @modelcontextprotocol/inspector bin/rails mcp:stdio
+
+# Or from the command line
+npx @modelcontextprotocol/inspector --cli http://localhost:3000/mcp --transport http \
+  --header "Authorization: Bearer $MY_APP_API_TOKEN" --method tools/list
+```
+</details>
+
+<details>
+<summary><b>MCP registries and gateways</b></summary>
+
+Register your `/mcp` endpoint with an MCP-compatible registry or gateway when you want discovery, access control, audit trails, and approvals managed centrally. Rails still owns the tools and enforces your app's own authorization on every call.
+</details>
+
+## Testing
+
+Test tools the way agents call them: through the MCP server and your real controllers.
+
+```ruby
+# spec/rails_helper.rb
+require "mcp_on_ruby/rspec"
+
+# test/test_helper.rb
+class ActiveSupport::TestCase
+  include McpOnRuby::TestHelper
+end
 ```
 
-## Architecture
+```ruby
+it "shows agents only their own orders" do
+  result = mcp_call :orders_index, { status: "pending" }, headers: { "Authorization" => "Bearer #{alice.api_token}" }
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Rails App                            │
-├─────────────────────────────────────────────────────────────┤
-│  app/tools/          │  app/resources/                      │
-│  ├── application_tool.rb     ├── application_resource.rb    │
-│  ├── user_manager_tool.rb    ├── user_stats_resource.rb     │
-│  └── ...                     └── ...                        │
-├─────────────────────────────────────────────────────────────┤
-│                    MCP Server Core                          │
-│  ┌─────────────────┐ ┌─────────────────┐ ┌──────────────┐   │
-│  │     Tools       │ │    Resources    │ │  Transport   │   │
-│  │  - Validation   │ │  - Templating   │ │  - HTTP      │   │
-│  │  - Authorization│ │  - Authorization│ │  - SSE       │   │
-│  │  - Execution    │ │  - Content      │ │  - Security  │   │
-│  └─────────────────┘ └─────────────────┘ └──────────────┘   │
-├─────────────────────────────────────────────────────────────┤
-│                  JSON-RPC Protocol                          │
-└─────────────────────────────────────────────────────────────┘
+  expect(result).to be_success
+  expect(result.structured.pluck("id")).to eq([alice_order.id])
+end
+
+it "stops agents from reading other users' orders" do
+  result = mcp_call :orders_show, { id: bob_order.id }, as: alice   # signs in through Devise/Warden
+
+  expect(result).to be_error
+  expect(result.status).to eq(404)
+end
 ```
 
-## Examples
+`mcp_call` returns a result with `success?`, `error?`, `structured` (the parsed JSON), `status` (for failures), `text` (what the agent reads), and `protocol_error` (unknown tool, invalid arguments). `mcp_tools` lists the tool names an agent sees.
 
-Connect your Rails MCP server with different AI clients:
+## Configuration
 
-👉 **[Claude Desktop](examples/claude/)** - Complete setup guide with bridge script
+```ruby
+# config/initializers/mcp_on_ruby.rb
+McpOnRuby.configure do |config|
+  config.server_name  = "my-app"
+  config.instructions = "Tools for managing orders in My App. Amounts are in cents."
+  config.stdio_user   = -> { User.find_by!(email: ENV.fetch("MCP_USER")) }
+end
+```
 
-👉 **MCP registries and control planes** - Register the Rails MCP endpoint with
-an MCP-compatible registry or gateway so tool discovery, access control, audit
-trails, and approvals can be managed centrally while Rails owns the tools.
+| Option | Default | Description |
+|---|---|---|
+| `server_name` | app name, dasherized | Name reported to clients |
+| `server_version` | `nil` | Version reported to clients |
+| `instructions` | `nil` | Guidance sent to the agent when it connects |
+| `stdio_user` | `nil` | Callable returning the user `mcp:stdio` sessions sign in as (Devise/Warden) |
+| `stdio_headers` | `nil` | Callable returning headers `mcp:stdio` sessions send (token auth) |
+| `warden_scope` | `:user` | Warden scope used for `stdio_user` and `mcp_call(as:)` |
+| `allow_writes` | `true` | Set `false` to hide and refuse every `write: true` tool |
+| `tools` | `[]` | Extra `MCP::Tool` classes served alongside controller tools |
+| `allowed_origins` | `[]` | Browser origins allowed to call the endpoint, in addition to same-origin |
+| `max_request_bytes` | 4 MiB | Largest MCP request body accepted |
+| `tool_name` | `"<controller>_<action>"` | Callable `(controller_path, action)` returning default tool names |
 
-## Documentation
+### Commands
 
-👉 **[Advanced Usage](docs/advanced-usage.md)** - Custom authorization, caching, manual configuration  
-👉 **[Testing Guide](docs/testing.md)** - RSpec integration and testing patterns  
-👉 **[API Reference](docs/api-reference.md)** - Complete API documentation
+| Command | What it does |
+|---|---|
+| `bin/rails g mcp_on_ruby:install [--path=/mcp]` | Adds the initializer and mounts the endpoint |
+| `bin/rails g mcp_on_ruby:expose CONTROLLER ACTION...` | Adds `mcp_tool` declarations to a controller |
+| `bin/rails mcp:tools` | Lists exposed tools, their routes, and their access level |
+| `bin/rails mcp:stdio` | Serves your tools over stdio for local agents |
+| `bin/rails mcp:doctor` | Checks the mount, declarations, and stdio identity; exits non-zero on errors |
 
+## Compatibility
 
-## Requirements
+| | Supported |
+|---|---|
+| Ruby | 3.2, 3.3, 3.4 |
+| Rails | 7.1, 7.2, 8.0, 8.1 |
+| MCP protocol | Every version the official `mcp` gem supports, negotiated per client |
+| Transports | Streamable HTTP (stateless), stdio |
+| Controllers | `ActionController::Base` and `ActionController::API` |
 
-- Ruby 2.7.0 or higher
-- Rails 6.0 or higher (for full integration)
-- JSON Schema validation support
+CI runs the full suite on every supported Ruby and Rails combination.
 
-## Dependencies
+## When to use something else
 
-Production dependencies (minimal footprint):
-- `json-schema` (~> 3.0) - JSON Schema validation
-- `rack` (~> 2.2) - HTTP transport layer
-- `webrick` (~> 1.7) - HTTP server
+MCP on Ruby is for exposing an **existing Rails app** to agents. Other tools fit other jobs:
+
+- **[`mcp`](https://github.com/modelcontextprotocol/ruby-sdk)**, the official Ruby SDK, if you're building a standalone MCP server. MCP on Ruby runs on top of it.
+- **[ActionMCP](https://github.com/seuros/action_mcp)** if you're on Rails 8.1+ and prefer dedicated tool, prompt, and resource classes with a full MCP feature set.
+- **[Tidewave](https://tidewave.ai)** if you want coding agents to understand your codebase while you develop. MCP on Ruby is about your app's *runtime* behavior for your *users*.
 
 ## Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Write tests for your changes
-4. Ensure all tests pass (`bundle exec rspec`)
-5. Commit your changes (`git commit -am 'Add some feature'`)
-6. Push to the branch (`git push origin my-new-feature`)
-7. Create a Pull Request
+Bug reports, ideas, and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+```bash
+git clone https://github.com/nagstler/mcp_on_ruby && cd mcp_on_ruby
+bin/setup
+bundle exec rake                          # specs + RuboCop
+RAILS_VERSION=7.2 bundle update && bundle exec rspec   # another Rails series
+```
+
+Release notes are in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE.txt) file for details.
+Released under the [MIT License](LICENSE.txt).
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- The [Model Context Protocol](https://modelcontextprotocol.io) team at Anthropic for creating the specification
-- The Ruby on Rails community for inspiration and conventions
-
----
-
-<div align="center">
-
-Made with ❤️ for the Ruby community
-
-</div>
+- The [Model Context Protocol](https://modelcontextprotocol.io) team for the specification.
+- The maintainers of the official [Ruby SDK](https://github.com/modelcontextprotocol/ruby-sdk), on whose work this gem is built.
+- The Rails community, whose conventions this gem tries hard not to break.

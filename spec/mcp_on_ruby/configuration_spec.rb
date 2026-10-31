@@ -5,7 +5,7 @@ RSpec.describe McpOnRuby::Configuration do
 
   it "has safe defaults" do
     expect(config).to have_attributes(
-      allow_writes: true, tools: [], allowed_hosts: [], allowed_origins: [],
+      allow_writes: true, tools: [], allowed_origins: [],
       warden_scope: :user, max_request_bytes: 4 * 1024 * 1024
     )
   end

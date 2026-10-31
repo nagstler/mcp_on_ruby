@@ -1,86 +1,56 @@
 # Contributing to MCP on Ruby
 
-We love your input! We want to make contributing to this project as easy and transparent as possible, whether it's:
+Thanks for helping make Rails apps usable by AI agents. Bug reports, ideas, documentation fixes, and code are all welcome.
 
-- Reporting a bug
-- Discussing the current state of the code
-- Submitting a fix
-- Proposing new features
-- Becoming a maintainer
+## Ground rules
 
-## Development Process
+- Be kind. This project follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+- For anything larger than a small fix, open an issue first so we can agree on the approach.
+- Report security problems privately, as described in [SECURITY.md](SECURITY.md), never in a public issue.
 
-We use GitHub to host code, to track issues and feature requests, as well as accept pull requests.
-
-## Pull Requests
-
-1. Fork the repo and create your branch from `main`.
-2. If you've added code that should be tested, add tests.
-3. If you've changed APIs, update the documentation.
-4. Ensure the test suite passes.
-5. Make sure your code lints.
-6. Issue that pull request!
-
-## Development Setup
+## Development setup
 
 ```bash
-# Clone your fork
 git clone https://github.com/nagstler/mcp_on_ruby.git
 cd mcp_on_ruby
-
-# Install dependencies
-bundle install
-
-# Run the generators to test Rails integration
-mkdir test_app && cd test_app
-rails new . --skip-git
-echo "gem 'mcp_on_ruby', path: '..' " >> Gemfile
-bundle install
-rails generate mcp_on_ruby:install
-
-# Test the gem
-cd .. && ruby -e "require './lib/mcp_on_ruby'; puts 'Gem loads successfully'"
+bin/setup            # bundle install
+bundle exec rake     # specs + RuboCop
+bin/console          # IRB with the dummy Rails app loaded
 ```
 
-## Code Style
+The suite runs against a small Rails app in `spec/dummy` with token-authenticated, Warden-authenticated, and non-JSON endpoints. Integration specs speak real MCP over Streamable HTTP and spawn `bin/rails mcp:stdio` as a subprocess.
 
-- Follow standard Ruby conventions
-- Use meaningful variable and method names
-- Add documentation for public APIs
-- Keep methods focused and small
+### Testing other Rails versions
 
-## Testing
+The Gemfile reads `RAILS_VERSION` (default `8.1`):
 
-Currently, we use manual testing and examples. In the future, we plan to add:
-- RSpec test suite
-- Integration tests with Rails
-- CI/CD pipeline
+```bash
+RAILS_VERSION=7.1 bundle update
+RAILS_VERSION=7.1 bundle exec rspec
+```
 
-## Bug Reports
+CI tests Ruby 3.2–3.4 against Rails 7.1–8.1 on every pull request.
 
-We use GitHub issues to track public bugs. Report a bug by [opening a new issue](https://github.com/nagstler/mcp_on_ruby/issues).
+### Trying a change in a real app
 
-**Great Bug Reports** tend to have:
+```ruby
+# In your app's Gemfile
+gem "mcp_on_ruby", path: "../mcp_on_ruby"
+```
 
-- A quick summary and/or background
-- Steps to reproduce
-  - Be specific!
-  - Give sample code if you can
-- What you expected would happen
-- What actually happens
-- Notes (possibly including why you think this might be happening, or stuff you tried that didn't work)
+Then `bin/rails mcp:doctor`, `bin/rails mcp:tools`, and the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) (`npx @modelcontextprotocol/inspector bin/rails mcp:stdio`) are the quickest way to see what agents see.
 
-## Feature Requests
+## Pull requests
 
-We use GitHub issues to track feature requests. Propose a feature by [opening a new issue](https://github.com/nagstler/mcp_on_ruby/issues).
+1. Branch from `main`.
+2. Add or update specs. Behavior changes need a spec that fails without the change.
+3. Run `bundle exec rake`; specs and RuboCop must pass.
+4. Update `README.md` for user-facing changes and add an entry under `[Unreleased]` in `CHANGELOG.md`.
+5. Keep commits focused, with messages that explain *why*.
 
-**Great Feature Requests** include:
+## Design principles
 
-- Clear use case description
-- Why this feature would be useful
-- Proposed API or implementation approach
-- Examples of how it would be used
-
-## License
-
-By contributing, you agree that your contributions will be licensed under the same MIT License that covers the project.
+- **The controller is the source of truth.** Agents should go through the same routes, filters, and policies as everyone else. Avoid features that create a second path around them.
+- **Safe by default.** Anything that lets an agent change data must be explicit.
+- **Lean on the official SDK** for protocol behavior instead of reimplementing it here.
+- **Fail early and clearly.** Misconfiguration should raise at boot or in `mcp:doctor`, not on an agent's first call.

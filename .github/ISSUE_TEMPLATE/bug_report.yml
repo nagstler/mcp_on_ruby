@@ -1,0 +1,51 @@
+name: Bug report
+description: Something doesn't work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! For security issues, please follow [SECURITY.md](https://github.com/nagstler/mcp_on_ruby/blob/main/SECURITY.md) instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: The `mcp_tool` declaration, route, and the tool call (or `bin/rails mcp:doctor` output) are most helpful.
+      render: ruby
+    validations:
+      required: true
+  - type: input
+    id: gem-version
+    attributes:
+      label: mcp_on_ruby version
+      placeholder: "2.0.0"
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Ruby and Rails versions
+      placeholder: "Ruby 3.3.6, Rails 8.0.2"
+    validations:
+      required: true
+  - type: dropdown
+    id: transport
+    attributes:
+      label: Transport
+      options:
+        - Streamable HTTP
+        - stdio
+        - Test helper (mcp_call)
+        - Not sure
+  - type: input
+    id: client
+    attributes:
+      label: MCP client
+      placeholder: "Claude Code, Cursor, MCP Inspector…"

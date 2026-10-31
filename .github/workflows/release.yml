@@ -1,0 +1,37 @@
+name: Release
+
+# Publishes the gem for an existing version tag via RubyGems trusted publishing.
+# See RELEASING.md for the one-time setup.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release, e.g. v2.0.0"
+        required: true
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: rubygems
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+      - name: Check the tag matches the gem version
+        run: |
+          version="$(ruby -Ilib -e 'require "mcp_on_ruby/version"; print McpOnRuby::VERSION')"
+          test "v${version}" = "${{ inputs.tag }}" || { echo "Tag ${{ inputs.tag }} != v${version}"; exit 1; }
+      - run: bundle exec rspec
+      - uses: rubygems/configure-rubygems-credentials@v1.0.0
+      - name: Build and push
+        run: |
+          gem build mcp_on_ruby.gemspec --strict
+          gem push mcp_on_ruby-*.gem
