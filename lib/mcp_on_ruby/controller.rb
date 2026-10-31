@@ -47,5 +47,14 @@ module McpOnRuby
     def mcp_user
       request.env[McpOnRuby::USER_ENV_KEY]
     end
+
+    private
+
+    # Requests dispatched by an MCP tool call pass CSRF verification. They cannot be forged
+    # cross-site: the flag lives in the Rack env and is set only by the dispatcher, and the MCP
+    # endpoint itself rejects requests from foreign browser origins.
+    def verified_request?
+      mcp_request? || super
+    end
   end
 end

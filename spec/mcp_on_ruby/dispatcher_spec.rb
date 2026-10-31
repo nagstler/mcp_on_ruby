@@ -56,6 +56,23 @@ RSpec.describe McpOnRuby::Dispatcher do
     end
   end
 
+  describe "CSRF protection" do
+    it "lets dispatched writes through controllers that verify authenticity tokens" do
+      response = call("notes_create", { body: "hello" })
+
+      expect(response.error?).to be(false)
+      expect(response.structured_content).to eq("body" => "hello")
+    end
+
+    it "still protects the same action from regular requests" do
+      response = Rack::MockRequest.new(Rails.application).post(
+        "/notes", "HTTP_HOST" => "www.example.com", "CONTENT_TYPE" => "application/json", input: "{}"
+      )
+
+      expect(response.status).to eq(422)
+    end
+  end
+
   describe "errors from the app" do
     it "maps 401 to a not-authenticated tool error" do
       response = call("orders_index", {}, anonymous)
