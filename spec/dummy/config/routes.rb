@@ -12,4 +12,9 @@ Rails.application.routes.draw do
   get "pages/moved", to: "pages#moved"
   get "pages/crash", to: "pages#crash"
   get "pages/noisy", to: "pages#noisy"
+  get "pages/echo", to: "pages#echo"
+
+  namespace :admin do
+    resources :reports, only: :index
+  end
 end
