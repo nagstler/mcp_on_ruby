@@ -30,7 +30,7 @@ jobs:
           version="$(ruby -Ilib -e 'require "mcp_on_ruby/version"; print McpOnRuby::VERSION')"
           test "v${version}" = "${{ inputs.tag }}" || { echo "Tag ${{ inputs.tag }} != v${version}"; exit 1; }
       - run: bundle exec rspec
-      - uses: rubygems/configure-rubygems-credentials@v1.0.0
+      - uses: rubygems/configure-rubygems-credentials@v2.1.0
       - name: Build and push
         run: |
           gem build mcp_on_ruby.gemspec --strict
