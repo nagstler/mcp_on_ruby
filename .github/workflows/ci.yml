@@ -53,3 +53,18 @@ jobs:
           ruby-version: "3.4"
           bundler-cache: true
       - run: gem build mcp_on_ruby.gemspec --strict
+
+  # Single required status check for branch protection, independent of the matrix shape.
+  ci-passed:
+    name: CI passed
+    if: always()
+    needs: [lint, test, package]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check job results
+        run: |
+          results='${{ join(needs.*.result, ' ') }}'
+          echo "Job results: $results"
+          for result in $results; do
+            [ "$result" = "success" ] || exit 1
+          done
