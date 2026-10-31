@@ -89,7 +89,11 @@ RSpec.describe "Generators" do
         define_singleton_method(:columns_hash) do
           { "id" => column.new(:integer), "sku" => column.new(:string), "quantity" => column.new(:integer),
             "total" => column.new(:decimal), "gift" => column.new(:boolean), "ships_on" => column.new(:date),
+            "user_id" => column.new(:integer),
             "created_at" => column.new(:datetime), "updated_at" => column.new(:datetime) }
+        end
+        define_singleton_method(:reflect_on_all_associations) do |macro|
+          macro == :belongs_to ? [Struct.new(:foreign_key).new(:user_id)] : []
         end
       end
       stub_const("Order", model)
