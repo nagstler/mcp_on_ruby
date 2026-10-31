@@ -90,12 +90,19 @@ module McpOnRuby
         }.fetch(action) { "TODO: describe what #{action} does for the agent" }
       end
 
+      # Foreign keys of belongs_to associations usually come from the signed-in user or the URL, not the agent.
+      def owner_keys(model)
+        return [] unless model.respond_to?(:reflect_on_all_associations)
+
+        model.reflect_on_all_associations(:belongs_to).map { |association| association.foreign_key.to_s }
+      end
+
       # A params block built from the model's columns, when the controller has an ActiveRecord model.
       def model_params
         model = controller.split("/").last.classify.safe_constantize
         return unless model.respond_to?(:columns_hash)
 
-        columns = model.columns_hash.except(model.primary_key, *SKIPPED_COLUMNS)
+        columns = model.columns_hash.except(model.primary_key, *SKIPPED_COLUMNS, *owner_keys(model))
         return if columns.empty?
 
         lines = columns.map do |name, column|
