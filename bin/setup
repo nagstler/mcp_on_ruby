@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 IFS=$'\n\t'
-set -vx
 
 bundle install
+echo
+echo "Ready. Run 'bundle exec rake' for tests and lint."
