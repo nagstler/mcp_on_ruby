@@ -23,9 +23,11 @@ module McpOnRuby
   autoload :Controller, "mcp_on_ruby/controller"
   autoload :Declaration, "mcp_on_ruby/declaration"
   autoload :Dispatcher, "mcp_on_ruby/dispatcher"
+  autoload :Endpoint, "mcp_on_ruby/endpoint"
   autoload :Registry, "mcp_on_ruby/registry"
   autoload :Result, "mcp_on_ruby/result"
   autoload :Schema, "mcp_on_ruby/schema"
+  autoload :ServerFactory, "mcp_on_ruby/server_factory"
   autoload :ToolSpec, "mcp_on_ruby/tool_spec"
   autoload :WardenHook, "mcp_on_ruby/warden_hook"
 
@@ -37,6 +39,11 @@ module McpOnRuby
     # The tools exposed by the running application.
     def registry
       @registry ||= Registry.new
+    end
+
+    # Builds MCP servers for HTTP requests and stdio sessions.
+    def server_factory
+      @server_factory ||= ServerFactory.new
     end
 
     def configure
