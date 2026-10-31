@@ -57,7 +57,7 @@ tool call to its file and lists the invariants changes must keep.
    | `fix: handle empty JSON bodies` | patch (2.0.0 → 2.0.1) |
    | `feat: expose show actions as MCP resources` | minor (2.0.0 → 2.1.0) |
    | `feat!: drop Rails 7.1` (or a `BREAKING CHANGE:` footer) | major (2.0.0 → 3.0.0) |
-   | `docs:`, `test:`, `ci:`, `chore:`, `refactor:` | no release on their own |
+   | `docs:`, `test:`, `ci:`, `chore:`, `refactor:` | no release, and not listed in the changelog |
 
    Don't edit `CHANGELOG.md` or `McpOnRuby::VERSION` by hand; the release PR does that.
 
