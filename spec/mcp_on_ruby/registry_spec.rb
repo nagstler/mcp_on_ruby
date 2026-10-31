@@ -41,7 +41,9 @@ RSpec.describe McpOnRuby::Registry do
   it "adds path params to the input schema as required" do
     expect(tool("widgets_show").input_schema).to eq(
       type: "object",
-      properties: { "id" => { type: %w[string integer], description: "The :id segment of /widgets/:id" } },
+      properties: {
+        "id" => { anyOf: [{ type: "string" }, { type: "integer" }], description: "The :id segment of /widgets/:id" }
+      },
       required: ["id"]
     )
   end
