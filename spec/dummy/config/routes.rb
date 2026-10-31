@@ -10,4 +10,5 @@ Rails.application.routes.draw do
   get "pages/text", to: "pages#text"
   get "pages/moved", to: "pages#moved"
   get "pages/crash", to: "pages#crash"
+  get "pages/noisy", to: "pages#noisy"
 end
