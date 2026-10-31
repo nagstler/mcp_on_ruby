@@ -1,9 +1,41 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [2.0.0] - Unreleased
+
+MCP on Ruby is now a Rails engine that exposes existing controller actions as MCP tools,
+built on the official [`mcp`](https://github.com/modelcontextprotocol/ruby-sdk) gem.
+
+### Added
+
+- `mcp_tool` controller macro with a compact parameter schema DSL (nested objects, arrays, unions, nullable)
+- Route-aware registry: path params become required arguments, annotations come from the HTTP verb, and
+  misconfiguration (unrouted declarations, unflagged writes, duplicate names) raises at boot
+- Dispatch of tool calls as in-process requests through the full middleware stack, forwarding the caller's
+  `Authorization` header and cookies
+- Result mapping from HTTP responses to MCP tool results, including structured JSON and agent-readable errors
+- Stateless Streamable HTTP endpoint via `mount McpOnRuby::Engine, at: "/mcp"`
+- `bin/rails mcp:stdio` with `stdio_user` (Devise/Warden) and `stdio_headers` (token auth) identities
+- `bin/rails mcp:tools` and `bin/rails mcp:doctor`
+- `mcp_on_ruby:install` and `mcp_on_ruby:expose` generators
+- `McpOnRuby::TestHelper` (`mcp_call`, `mcp_tools`) and `mcp_on_ruby/rspec`
+- `tool_call.mcp_on_ruby` instrumentation event
+- `allow_writes` kill switch and `allowed_origins` for browser clients
+
+### Changed
+
+- Requires Ruby 3.2+ and Rails 7.1+
+- The protocol layer is provided by the official `mcp` gem
+
+### Removed
+
+- The hand-written JSON-RPC server, Rack middleware, SSE transport, and `app/tools`/`app/resources` classes
 
 ## [1.0.0] - 2025-01-28
 
