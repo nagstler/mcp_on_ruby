@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 Rails.application.routes.draw do
+  mount McpOnRuby::Engine, at: "/mcp"
+
   resources :orders
   resource :profile, only: :show
 
