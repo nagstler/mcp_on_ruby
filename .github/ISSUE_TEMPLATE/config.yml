@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Question or idea
+    url: https://github.com/nagstler/mcp_on_ruby/discussions
+    about: Ask how to expose your app, share setups, or float an idea before opening an issue.
   - name: Security vulnerability
     url: https://github.com/nagstler/mcp_on_ruby/security/advisories/new
     about: Please report security issues privately.
