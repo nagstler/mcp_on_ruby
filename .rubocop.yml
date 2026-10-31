@@ -43,7 +43,8 @@ Metrics/BlockLength:
     - "lib/tasks/**/*.rake"
 
 RSpec/ExampleLength:
-  Max: 15
+  Max: 20
+  CountAsOne: ["array", "hash", "heredoc", "method_call"]
 
 RSpec/MultipleExpectations:
   Max: 5
