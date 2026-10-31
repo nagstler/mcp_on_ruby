@@ -44,6 +44,13 @@ RSpec.describe "Generators" do
       expect(output).to include("bin/rails mcp:doctor")
     end
 
+    it "is safe to run twice" do
+      run_generator(described_class, [])
+      run_generator(described_class, ["--skip"])
+
+      expect(read("config/routes.rb").scan("McpOnRuby::Engine").size).to eq(1)
+    end
+
     it "mounts at a custom path" do
       run_generator(described_class, ["--path", "/agents"])
 
@@ -106,6 +113,13 @@ RSpec.describe "Generators" do
       RUBY
     end
 
+    it "declares create without params when there is no model to read" do
+      run_generator(described_class, %w[orders create])
+
+      expect(read("app/controllers/orders_controller.rb"))
+        .to include(%(mcp_tool :create, description: "Create an order", write: true\n))
+    end
+
     it "skips actions that are already declared" do
       run_generator(described_class, %w[orders index])
       run_generator(described_class, %w[orders index archive])
@@ -113,6 +127,16 @@ RSpec.describe "Generators" do
       source = read("app/controllers/orders_controller.rb")
       expect(source.scan("mcp_tool :index").size).to eq(1)
       expect(source).to include('mcp_tool :archive, description: "TODO: describe what archive does for the agent"')
+    end
+
+    it "leaves the controller untouched when every action is already declared" do
+      run_generator(described_class, %w[orders index])
+      before = read("app/controllers/orders_controller.rb")
+
+      output = run_generator(described_class, %w[orders index])
+
+      expect(read("app/controllers/orders_controller.rb")).to eq(before)
+      expect(output).to include("identical")
     end
 
     it "handles namespaced controllers" do
