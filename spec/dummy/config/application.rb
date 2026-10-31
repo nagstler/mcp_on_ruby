@@ -3,6 +3,7 @@
 require "logger"
 require "rails"
 require "action_controller/railtie"
+require "warden"
 require "mcp_on_ruby"
 
 module Dummy
@@ -13,5 +14,11 @@ module Dummy
     config.secret_key_base = "dummy-secret-key-base-for-tests-only"
     config.logger = Logger.new(nil)
     config.hosts << "www.example.com"
+
+    config.middleware.use Warden::Manager do |manager|
+      manager.failure_app = lambda { |_env|
+        [401, { "content-type" => "application/json" }, ['{"error":"unauthenticated"}']]
+      }
+    end
   end
 end
