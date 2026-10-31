@@ -387,7 +387,7 @@ end
 
 | | Supported |
 |---|---|
-| Ruby | 3.2, 3.3, 3.4 |
+| Ruby | 3.2, 3.3, 3.4, 4.0 |
 | Rails | 7.1, 7.2, 8.0, 8.1 |
 | MCP protocol | Every version the official `mcp` gem supports, negotiated per client |
 | Transports | Streamable HTTP (stateless), stdio |
