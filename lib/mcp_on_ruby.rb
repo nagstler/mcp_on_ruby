@@ -18,11 +18,18 @@ module McpOnRuby
   autoload :Configuration, "mcp_on_ruby/configuration"
   autoload :Controller, "mcp_on_ruby/controller"
   autoload :Declaration, "mcp_on_ruby/declaration"
+  autoload :Registry, "mcp_on_ruby/registry"
   autoload :Schema, "mcp_on_ruby/schema"
+  autoload :ToolSpec, "mcp_on_ruby/tool_spec"
 
   class << self
     def configuration
       @configuration ||= Configuration.new
+    end
+
+    # The tools exposed by the running application.
+    def registry
+      @registry ||= Registry.new
     end
 
     def configure
