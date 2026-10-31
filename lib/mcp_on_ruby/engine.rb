@@ -23,7 +23,12 @@ module McpOnRuby
     # Fail at boot, not on the first agent request, when declarations do not match routes.
     config.after_initialize do |app|
       McpOnRuby::WardenHook.install!
-      McpOnRuby.registry.tools if app.config.eager_load
+      next unless app.config.eager_load
+
+      # Rails 8 draws routes lazily, and the lazy route set only loads them once the app reports
+      # itself initialized, which is after this hook. Load them now so the check sees real routes.
+      app.routes_reloader.execute_unless_loaded if app.routes_reloader.respond_to?(:execute_unless_loaded)
+      McpOnRuby.registry.tools
     end
   end
 end
