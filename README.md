@@ -209,7 +209,8 @@ See [SECURITY.md](SECURITY.md) for the full threat model.
 | `401` / `403` / `404` | Tool error: not authenticated / not permitted / not found |
 | `422` with JSON | Tool error including your validation messages, so the agent can correct itself |
 | Other `4xx` | Tool error with the status, plus the body when it is JSON |
-| `3xx` | Tool error naming the redirect target (redirects are not followed) |
+| `3xx` to a sign-in page | Tool error: not authenticated (Rails 8 authentication and Devise redirect unauthenticated requests) |
+| Other `3xx` | Tool error naming the redirect target (redirects are not followed) |
 | HTML | Tool error asking for JSON. Use `respond_to` with `format.json`. |
 | `5xx` or an exception | Generic tool error. Details are reported to `Rails.error`, never sent. |
 
