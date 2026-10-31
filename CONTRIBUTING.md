@@ -29,7 +29,7 @@ RAILS_VERSION=7.1 bundle update
 RAILS_VERSION=7.1 bundle exec rspec
 ```
 
-CI tests Ruby 3.2–3.4 against Rails 7.1–8.1 on every pull request.
+CI tests Ruby 3.2–4.0 against Rails 7.1–8.1 on every pull request.
 
 ### Trying a change in a real app
 
