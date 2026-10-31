@@ -45,6 +45,11 @@ Metrics/BlockLength:
     - "*.gemspec"
     - "lib/tasks/**/*.rake"
 
+# The dummy app is application code, not specs.
+RSpec:
+  Exclude:
+    - "spec/dummy/**/*"
+
 RSpec/ExampleLength:
   Max: 20
   CountAsOne: ["array", "hash", "heredoc", "method_call"]
