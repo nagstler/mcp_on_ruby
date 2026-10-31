@@ -40,6 +40,9 @@ gem "mcp_on_ruby", path: "../mcp_on_ruby"
 
 Then `bin/rails mcp:doctor`, `bin/rails mcp:tools`, and the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) (`npx @modelcontextprotocol/inspector bin/rails mcp:stdio`) are the quickest way to see what agents see.
 
+Before changing the dispatch path, read [docs/architecture.md](docs/architecture.md): it maps each step of a
+tool call to its file and lists the invariants changes must keep.
+
 ## Pull requests
 
 1. Branch from `main`.

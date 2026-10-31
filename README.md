@@ -110,7 +110,7 @@ Then ask: *"Which of my products cost more than $50?"*
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/how-it-works-dark.svg">
-    <img src="docs/assets/how-it-works.svg" width="960" alt="An MCP client calls a tool over HTTP or stdio. The official mcp gem handles the protocol and passes tools/call to MCP on Ruby, where the Dispatcher uses the Registry (mcp_tool to route) and Identity (token or stdio user) to run an in-process request such as GET /orders through your Rails stack and controller as the caller. The controller's response is mapped by Result into the tool result returned to the client.">
+    <img src="docs/assets/how-it-works.svg" width="960" alt="An MCP client sends a tool call over HTTP or stdio to the official mcp gem, which hands it to MCP on Ruby. MCP on Ruby runs it as an ordinary Rails request through your app, as the caller, and the JSON response comes back as the tool result.">
   </picture>
 </p>
 
