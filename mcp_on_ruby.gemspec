@@ -1,36 +1,37 @@
 # frozen_string_literal: true
 
-require_relative 'lib/mcp_on_ruby/version'
+require_relative "lib/mcp_on_ruby/version"
 
 Gem::Specification.new do |spec|
-  spec.name = 'mcp_on_ruby'
+  spec.name = "mcp_on_ruby"
   spec.version = McpOnRuby::VERSION
-  spec.authors = ['Nagendra Dhanakeerthi']
-  spec.email = ['nagendra.dhanakeerthi@gmail.com']
+  spec.authors = ["Nagendra Dhanakeerthi"]
+  spec.email = ["nagendra.dhanakeerthi@gmail.com"]
 
-  spec.summary = 'Production-ready MCP server for Rails applications'
-  spec.description = 'A comprehensive Ruby library for building Model Context Protocol (MCP) servers in Rails applications, featuring tools, resources, authentication, and real-time capabilities.'
-  spec.homepage = 'https://github.com/rubyonai/mcp_on_ruby'
-  spec.license = 'MIT'
-  spec.required_ruby_version = '>= 2.7.0'
+  spec.summary = "Make your Rails app usable by AI agents."
+  spec.description = <<~DESC.tr("\n", " ").strip
+    MCP on Ruby exposes existing Rails controller actions as Model Context Protocol (MCP) tools.
+    Agents call your app through the same routes, authentication, policies, params, and JSON
+    responses your users already rely on. Built on the official mcp gem; serves Streamable HTTP
+    and stdio.
+  DESC
+  spec.homepage = "https://github.com/nagstler/mcp_on_ruby"
+  spec.license = "MIT"
+  spec.required_ruby_version = ">= 3.2"
 
-  spec.metadata['homepage_uri'] = spec.homepage
-  spec.metadata['source_code_uri'] = 'https://github.com/rubyonai/mcp_on_ruby'
-  spec.metadata['changelog_uri'] = 'https://github.com/rubyonai/mcp_on_ruby/blob/main/CHANGELOG.md'
+  spec.metadata = {
+    "homepage_uri" => spec.homepage,
+    "source_code_uri" => spec.homepage,
+    "changelog_uri" => "#{spec.homepage}/blob/main/CHANGELOG.md",
+    "bug_tracker_uri" => "#{spec.homepage}/issues",
+    "documentation_uri" => "#{spec.homepage}#readme",
+    "rubygems_mfa_required" => "true"
+  }
 
-  spec.files = Dir.glob('{bin,lib,examples,docs}/**/*') + %w[LICENSE.txt README.md CHANGELOG.md CODE_OF_CONDUCT.md CONTRIBUTING.md]
-  spec.bindir = 'bin'
-  spec.executables = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
-  spec.require_paths = ['lib']
+  spec.files = Dir["lib/**/*", "CHANGELOG.md", "LICENSE.txt", "README.md"]
+  spec.require_paths = ["lib"]
 
-  spec.add_dependency 'json-schema', '~> 3.0'
-  spec.add_dependency 'rack', '~> 2.2'
-  spec.add_dependency 'webrick', '~> 1.7'
-
-  spec.add_development_dependency 'rake', '~> 13.0'
-  spec.add_development_dependency 'rspec', '~> 3.12'
-  spec.add_development_dependency 'rubocop', '~> 1.50'
-  spec.add_development_dependency 'simplecov', '~> 0.22'
-  spec.add_development_dependency 'webmock', '~> 3.18'
-  spec.add_development_dependency 'rack-test', '~> 2.1'
+  spec.add_dependency "actionpack", ">= 7.1", "< 9"
+  spec.add_dependency "mcp", "~> 1.8", ">= 1.8.2"
+  spec.add_dependency "railties", ">= 7.1", "< 9"
 end
