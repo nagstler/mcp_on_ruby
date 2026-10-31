@@ -9,6 +9,8 @@ the same authentication, policies, params, and JSON you already ship.
 
 [![Gem Version](https://img.shields.io/gem/v/mcp_on_ruby)](https://rubygems.org/gems/mcp_on_ruby)
 [![CI](https://github.com/nagstler/mcp_on_ruby/actions/workflows/ci.yml/badge.svg)](https://github.com/nagstler/mcp_on_ruby/actions/workflows/ci.yml)
+[![Coverage](https://qlty.sh/gh/nagstler/projects/mcp_on_ruby/coverage.svg)](https://qlty.sh/gh/nagstler/projects/mcp_on_ruby)
+[![Maintainability](https://qlty.sh/gh/nagstler/projects/mcp_on_ruby/maintainability.svg)](https://qlty.sh/gh/nagstler/projects/mcp_on_ruby)
 [![Ruby](https://img.shields.io/badge/ruby-3.2%2B-CC342D)](#compatibility)
 [![Rails](https://img.shields.io/badge/rails-7.1%20%E2%80%93%208.1-D30001)](#compatibility)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE.txt)
