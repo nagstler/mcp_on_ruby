@@ -31,6 +31,7 @@ module McpOnRuby
   autoload :ServerFactory, "mcp_on_ruby/server_factory"
   autoload :Stdio, "mcp_on_ruby/stdio"
   autoload :ToolTable, "mcp_on_ruby/tool_table"
+  autoload :TestHelper, "mcp_on_ruby/test_helper"
   autoload :ToolSpec, "mcp_on_ruby/tool_spec"
   autoload :WardenHook, "mcp_on_ruby/warden_hook"
 
